@@ -85,8 +85,8 @@ package body Bankers_Algorithm is
 
    --  Initialize a system state with given parameters
    function Initialize_System (
-      Num_Processes  : Process_ID;
-      Num_Resources  : Resource_Type;
+      Num_Processes  : Process_Count;
+      Num_Resources  : Resource_Count_Type;
       Total_Resources : Resource_Vector)
       return System_State is
    begin
@@ -185,14 +185,8 @@ package body Bankers_Algorithm is
    --  Returns the sequence of process IDs that can finish safely
    function Find_Safe_Sequence (
       State    : System_State;
-      Sequence : out Ada.Containers.Vectors.Vector) 
+      Sequence : out Process_Sequence) 
       return Boolean is
-      
-      --  Use Integer vector to store process IDs
-      package Integer_Vectors is new Ada.Containers.Vectors(Natural, Integer);
-      use Integer_Vectors;
-      
-      Temp_Sequence : Integer_Vectors.Vector;
       
       --  Make copies to work with
       Available_Copy : Resource_Vector (State.Available'Range) := State.Available;
@@ -201,10 +195,11 @@ package body Bankers_Algorithm is
       
       Count : Integer := State.Allocation'Length(1);
       Found : Boolean;
-   begin
-      --  Clear the output sequence
-      Sequence.Clear;
       
+      --  Temporary sequence to build up
+      Temp_Sequence : Process_Sequence (1 .. State.Allocation'Length(1));
+      Temp_Index : Positive := 1;
+   begin
       loop
          Found := False;
          
@@ -212,7 +207,8 @@ package body Bankers_Algorithm is
             if not Finished(P) then
                if Need(P) <= Available_Copy then
                   --  Process can finish
-                  Temp_Sequence.Append(Integer(P));
+                  Temp_Sequence(Temp_Index) := P;
+                  Temp_Index := Temp_Index + 1;
                   Available_Copy := Available_Copy + State.Allocation(P);
                   Finished(P) := True;
                   Count := Count - 1;
@@ -226,9 +222,7 @@ package body Bankers_Algorithm is
       
       --  If all processes finished, copy the sequence
       if Count = 0 then
-         for Proc of Temp_Sequence loop
-            Sequence.Append(Proc);
-         end loop;
+         Sequence := Temp_Sequence(1 .. Temp_Index - 1);
          return True;
       else
          return False;
@@ -543,8 +537,8 @@ package body Bankers_Algorithm is
 
    --  Initialize a static system
    function Initialize_Static_System (
-      Num_Processes  : Process_ID;
-      Num_Resources  : Resource_Type;
+      Num_Processes  : Process_Count;
+      Num_Resources  : Resource_Count_Type;
       Total_Resources : Resource_Vector;
       Max_Needs      : Resource_Matrix) 
       return System_State is
@@ -583,7 +577,7 @@ package body Bankers_Algorithm is
       Initial_Allocation : Resource_Vector) 
       return Process_ID is
       
-      New_Num_Processes : Process_ID := State.Num_Processes + 1;
+      New_Num_Processes : Process_Count := State.Num_Processes + 1;
       New_State : System_State (New_Num_Processes, State.Num_Resources);
    begin
       --  Validate input
@@ -625,7 +619,7 @@ package body Bankers_Algorithm is
       Process : Process_ID) 
       return Resource_Vector is
       
-      New_Num_Processes : Process_ID := State.Num_Processes - 1;
+      New_Num_Processes : Process_Count := State.Num_Processes - 1;
       New_State : System_State (New_Num_Processes, State.Num_Resources);
       Returned_Resources : Resource_Vector (1 .. State.Num_Resources);
    begin

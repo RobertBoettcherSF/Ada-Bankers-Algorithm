@@ -52,9 +52,15 @@ package Bankers_Algorithm is
 
    --  Type for process IDs
    type Process_ID is range 1 .. Integer'Last;
+   
+   --  Type for number of processes
+   type Process_Count is range 0 .. Integer'Last;
 
    --  Type for resource types
    type Resource_Type is range 1 .. Integer'Last;
+   
+   --  Type for number of resource types
+   type Resource_Count_Type is range 0 .. Integer'Last;
 
    --  Vector type for available resources
    type Resource_Vector is array (Resource_Type range <>) of Resource_Count;
@@ -63,7 +69,7 @@ package Bankers_Algorithm is
    type Resource_Matrix is array (Process_ID range <>, Resource_Type range <>) of Resource_Count;
 
    --  Type to represent the system state
-   type System_State (Num_Processes : Process_ID; Num_Resources : Resource_Type) is
+   type System_State (Num_Processes : Process_Count; Num_Resources : Resource_Count_Type) is
       record
          Available   : Resource_Vector (1 .. Num_Resources);
          Allocation  : Resource_Matrix (1 .. Num_Processes, 1 .. Num_Resources);
@@ -71,7 +77,7 @@ package Bankers_Algorithm is
       end record;
 
    --  Type to represent a resource request
-   type Resource_Request (Num_Resources : Resource_Type) is
+   type Resource_Request (Num_Resources : Resource_Count_Type) is
       record
          Process    : Process_ID;
          Resources  : Resource_Vector (1 .. Num_Resources);
@@ -121,9 +127,11 @@ package Bankers_Algorithm is
    --    State    - The system state
    --    Sequence - Output parameter: array of process IDs in safe order
    --  Returns: True if safe sequence exists, False otherwise
+   --  Note: Uses a simple array for the sequence to avoid generic package issues
+   type Process_Sequence is array (Positive range <>) of Process_ID;
    function Find_Safe_Sequence (
       State    : System_State;
-      Sequence : out Ada.Containers.Vectors.Vector) 
+      Sequence : out Process_Sequence) 
       return Boolean;
 
    --  ====================================================================

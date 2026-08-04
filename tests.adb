@@ -2,7 +2,7 @@
 --  
 --  Comprehensive test suite for the Banker's Algorithm implementation
 --  
---  This test suite contains 13+ tests that verify the correctness of the
+--  This test suite contains 15 tests that verify the correctness of the
 --  Banker's Algorithm implementation by assuming the code is broken and
 --  trying to disprove that assumption.
 --  
@@ -16,6 +16,7 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Assertions; use Ada.Assertions;
+with Ada.Exceptions; use Ada.Exceptions;
 with Bankers_Algorithm; use Bankers_Algorithm;
 
 procedure Tests is
@@ -46,13 +47,12 @@ procedure Tests is
    --  TEST 1 - System Initialization
    --  ====================================================================
    procedure Test_System_Initialization is
-      State : System_State;
+      State : System_State := Initialize_System(3, 2, (10, 5));
    begin
       Print_Test_Header(1, "System Initialization");
       
       --  1.1: Initialize system with valid parameters
       Print_Assertion(1, "Initialize system with 3 processes and 2 resources");
-      State := Initialize_System(3, 2, (10, 5));
       Assert(State.Num_Processes = 3, "Process count mismatch");
       Assert(State.Num_Resources = 2, "Resource count mismatch");
       Assert(State.Available = (10, 5), "Available resources mismatch");
@@ -81,14 +81,13 @@ procedure Tests is
    --  TEST 2 - Need Calculation
    --  ====================================================================
    procedure Test_Need_Calculation is
-      State : System_State;
-      Need : Resource_Matrix;
+      State : System_State := Initialize_System(2, 2, (10, 10));
+      Need : Resource_Matrix (1 .. 2, 1 .. 2);
    begin
       Print_Test_Header(2, "Need Calculation");
       
       --  2.1: Initialize system with non-zero allocations and max needs
       Print_Assertion(1, "Initialize system with allocations and max needs");
-      State := Initialize_System(2, 2, (10, 10));
       State.Allocation := ((1, 2), (3, 1));
       State.Max_Need := ((3, 4), (5, 3));
       Print_Result("2.1", True);
@@ -116,14 +115,13 @@ procedure Tests is
    --  TEST 3 - Safety Check (Safe State)
    --  ====================================================================
    procedure Test_Safety_Check_Safe is
-      State : System_State;
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
       Result : Safety_Result;
    begin
       Print_Test_Header(3, "Safety Check - Safe State");
       
       --  3.1: Create a known safe state (from Wikipedia example)
       Print_Assertion(1, "Create safe state from Wikipedia example");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (3, 1, 1, 2);
       State.Allocation := ((1, 2, 2, 1), (1, 0, 3, 3), (1, 2, 1, 0));
       State.Max_Need := ((3, 3, 2, 2), (1, 2, 3, 4), (1, 3, 5, 0));
@@ -145,14 +143,13 @@ procedure Tests is
    --  TEST 4 - Safety Check (Unsafe State)
    --  ====================================================================
    procedure Test_Safety_Check_Unsafe is
-      State : System_State;
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
       Result : Safety_Result;
    begin
       Print_Test_Header(4, "Safety Check - Unsafe State");
       
       --  4.1: Create an unsafe state
       Print_Assertion(1, "Create unsafe state");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (3, 0, 1, 2);
       State.Allocation := ((1, 2, 5, 1), (1, 1, 3, 3), (1, 2, 1, 0));
       State.Max_Need := ((3, 3, 2, 2), (1, 2, 3, 4), (1, 3, 5, 0));
@@ -174,15 +171,14 @@ procedure Tests is
    --  TEST 5 - Safe Sequence Finding
    --  ====================================================================
    procedure Test_Safe_Sequence is
-      State : System_State;
-      Sequence : Ada.Containers.Vectors.Vector;
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      Sequence : Process_Sequence (1 .. 3);
       Found : Boolean;
    begin
       Print_Test_Header(5, "Safe Sequence Finding");
       
       --  5.1: Create a safe state
       Print_Assertion(1, "Create safe state");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (3, 1, 1, 2);
       State.Allocation := ((1, 2, 2, 1), (1, 0, 3, 3), (1, 2, 1, 0));
       State.Max_Need := ((3, 3, 2, 2), (1, 2, 3, 4), (1, 3, 5, 0));
@@ -196,7 +192,7 @@ procedure Tests is
       
       --  5.3: Sequence should have all processes
       Print_Assertion(3, "Sequence should contain all processes");
-      Assert(Integer(Sequence.Length) = 3, "Sequence should have 3 processes");
+      Assert(Sequence'Length = 3, "Sequence should have 3 processes");
       Print_Result("5.3", True);
    end Test_Safe_Sequence;
 
@@ -204,15 +200,14 @@ procedure Tests is
    --  TEST 6 - Non-Preemptive Request Handling (Grant)
    --  ====================================================================
    procedure Test_Non_Preemptive_Grant is
-      State : System_State;
-      Request : Resource_Request(4);
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => 4, Process => 3, Resources => (0, 0, 1, 0));
       Result : Boolean;
    begin
       Print_Test_Header(6, "Non-Preemptive Request Handling - Grant");
       
       --  6.1: Create a safe state
       Print_Assertion(1, "Create safe state");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (3, 1, 1, 2);
       State.Allocation := ((1, 2, 2, 1), (1, 0, 3, 3), (1, 2, 1, 0));
       State.Max_Need := ((3, 3, 2, 2), (1, 2, 3, 4), (1, 3, 5, 0));
@@ -220,8 +215,7 @@ procedure Tests is
       
       --  6.2: Create a valid request that should be granted
       Print_Assertion(2, "Create valid request for process 3");
-      Request.Process := 3;
-      Request.Resources := (0, 0, 1, 0);  --  Request 1 unit of resource C
+      --  Request is already initialized above
       Print_Result("6.2", True);
       
       --  6.3: Request should be granted (state remains safe)
@@ -235,15 +229,14 @@ procedure Tests is
    --  TEST 7 - Non-Preemptive Request Handling (Deny - Unsafe)
    --  ====================================================================
    procedure Test_Non_Preemptive_Deny_Unsafe is
-      State : System_State;
-      Request : Resource_Request(4);
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => 4, Process => 2, Resources => (0, 1, 0, 0));
       Result : Boolean;
    begin
       Print_Test_Header(7, "Non-Preemptive Request Handling - Deny (Unsafe)");
       
       --  7.1: Create a state
       Print_Assertion(1, "Create state");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (3, 1, 1, 2);
       State.Allocation := ((1, 2, 2, 1), (1, 0, 3, 3), (1, 2, 1, 0));
       State.Max_Need := ((3, 3, 2, 2), (1, 2, 3, 4), (1, 3, 5, 0));
@@ -251,8 +244,7 @@ procedure Tests is
       
       --  7.2: Create a request that would lead to unsafe state
       Print_Assertion(2, "Create request that would lead to unsafe state");
-      Request.Process := 2;
-      Request.Resources := (0, 1, 0, 0);  --  Request 1 unit of resource B
+      --  Request is already initialized above
       Print_Result("7.2", True);
       
       --  7.3: Request should be denied (would lead to unsafe state)
@@ -272,15 +264,14 @@ procedure Tests is
    --  TEST 8 - Non-Preemptive Request Handling (Deny - Exceeds Available)
    --  ====================================================================
    procedure Test_Non_Preemptive_Deny_Exceeds_Available is
-      State : System_State;
-      Request : Resource_Request(4);
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => 4, Process => 1, Resources => (0, 0, 2, 0));
       Result : Boolean;
    begin
       Print_Test_Header(8, "Non-Preemptive Request Handling - Deny (Exceeds Available)");
       
       --  8.1: Create a state
       Print_Assertion(1, "Create state");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (3, 1, 1, 2);
       State.Allocation := ((1, 2, 2, 1), (1, 0, 3, 3), (1, 2, 1, 0));
       State.Max_Need := ((3, 3, 2, 2), (1, 2, 3, 4), (1, 3, 5, 0));
@@ -288,8 +279,7 @@ procedure Tests is
       
       --  8.2: Create a request that exceeds available resources
       Print_Assertion(2, "Create request that exceeds available");
-      Request.Process := 1;
-      Request.Resources := (0, 0, 2, 0);  --  Request 2 units of resource C (only 1 available)
+      --  Request is already initialized above (2 units of resource C, only 1 available)
       Print_Result("8.2", True);
       
       --  8.3: Request should be denied (exceeds available)
@@ -309,15 +299,14 @@ procedure Tests is
    --  TEST 9 - Preemptive Request Handling
    --  ====================================================================
    procedure Test_Preemptive_Request is
-      State : System_State;
-      Request : Resource_Request(4);
+      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => 4, Process => 1, Resources => (1, 1, 1, 1));
       Result : Boolean;
    begin
       Print_Test_Header(9, "Preemptive Request Handling");
       
       --  9.1: Create a state where preemption is needed
       Print_Assertion(1, "Create state where preemption might be needed");
-      State := Initialize_System(3, 4, (6, 5, 7, 6));
       State.Available := (1, 1, 1, 1);
       State.Allocation := ((2, 1, 1, 1), (1, 1, 2, 2), (1, 1, 1, 1));
       State.Max_Need := ((3, 2, 2, 2), (2, 2, 3, 3), (2, 2, 2, 2));
@@ -325,8 +314,7 @@ procedure Tests is
       
       --  9.2: Create a request that would require preemption
       Print_Assertion(2, "Create request that might require preemption");
-      Request.Process := 1;
-      Request.Resources := (1, 1, 1, 1);
+      --  Request is already initialized above
       Print_Result("9.2", True);
       
       --  9.3: Request should be granted with preemption
@@ -382,14 +370,13 @@ procedure Tests is
    --  TEST 11 - Dynamic System (Add Process)
    --  ====================================================================
    procedure Test_Dynamic_Add_Process is
-      State : System_State;
+      State : System_State := Initialize_System(2, 2, (10, 10));
       New_Process_ID : Process_ID;
    begin
       Print_Test_Header(11, "Dynamic System - Add Process");
       
       --  11.1: Initialize system
       Print_Assertion(1, "Initialize system");
-      State := Initialize_System(2, 2, (10, 10));
       State.Max_Need := ((5, 3), (4, 6));
       Print_Result("11.1", True);
       
@@ -418,14 +405,13 @@ procedure Tests is
    --  TEST 12 - Dynamic System (Remove Process)
    --  ====================================================================
    procedure Test_Dynamic_Remove_Process is
-      State : System_State;
-      Returned : Resource_Vector(2);
+      State : System_State := Initialize_System(3, 2, (10, 10));
+      Returned : Resource_Vector (1 .. 2);
    begin
       Print_Test_Header(12, "Dynamic System - Remove Process");
       
       --  12.1: Initialize system with allocations
       Print_Assertion(1, "Initialize system with allocations");
-      State := Initialize_System(3, 2, (10, 10));
       State.Available := (5, 5);
       State.Allocation := ((2, 1), (1, 2), (1, 1));
       State.Max_Need := ((3, 2), (2, 3), (2, 2));
@@ -448,16 +434,18 @@ procedure Tests is
    --  TEST 13 - Edge Cases
    --  ====================================================================
    procedure Test_Edge_Cases is
-      State : System_State;
    begin
       Print_Test_Header(13, "Edge Cases");
       
       --  13.1: System with no resources should raise exception
       Print_Assertion(1, "System with no resources should raise exception");
       begin
-         State := Initialize_System(1, 0, (1..0 => 0));
-         Assert(False, "Should have raised No_Resources_Exception");
-         Print_Result("13.1", False);
+         declare
+            State : System_State := Initialize_System(1, 0, (1..0 => 0));
+         begin
+            Assert(False, "Should have raised No_Resources_Exception");
+            Print_Result("13.1", False);
+         end;
       exception
          when No_Resources_Exception =>
             Print_Result("13.1", True);
@@ -466,9 +454,12 @@ procedure Tests is
       --  13.2: System with no processes should raise exception
       Print_Assertion(2, "System with no processes should raise exception");
       begin
-         State := Initialize_System(0, 1, (0));
-         Assert(False, "Should have raised No_Processes_Exception");
-         Print_Result("13.2", False);
+         declare
+            State : System_State := Initialize_System(0, 1, (0));
+         begin
+            Assert(False, "Should have raised No_Processes_Exception");
+            Print_Result("13.2", False);
+         end;
       exception
          when No_Processes_Exception =>
             Print_Result("13.2", True);
@@ -476,14 +467,17 @@ procedure Tests is
       
       --  13.3: Request with invalid process ID should raise exception
       Print_Assertion(3, "Request with invalid process ID should raise exception");
-      State := Initialize_System(2, 2, (10, 10));
       declare
-         Request : Resource_Request(2) := (Process => 5, Resources => (1, 1));
+         State : System_State := Initialize_System(2, 2, (10, 10));
+         Request : Resource_Request := (Num_Resources => 2, Process => 5, Resources => (1, 1));
       begin
          begin
-            Handle_Request_Non_Preemptive(State, Request);
-            Assert(False, "Should have raised Index_Out_Of_Range");
-            Print_Result("13.3", False);
+            declare
+               Result : Boolean := Handle_Request_Non_Preemptive(State, Request);
+            begin
+               Assert(False, "Should have raised Index_Out_Of_Range");
+               Print_Result("13.3", False);
+            end;
          exception
             when Index_Out_Of_Range =>
                Print_Result("13.3", True);
@@ -495,19 +489,17 @@ procedure Tests is
    --  TEST 14 - Algorithm Variant Selection
    --  ====================================================================
    procedure Test_Algorithm_Variants is
-      State : System_State;
-      Request : Resource_Request(2);
+      State : System_State := Initialize_System(2, 2, (10, 10));
+      Request : Resource_Request := (Num_Resources => 2, Process => 1, Resources => (1, 1));
       Result : Boolean;
    begin
       Print_Test_Header(14, "Algorithm Variant Selection");
       
       --  14.1: Test Non_Preemptive variant
       Print_Assertion(1, "Test Non_Preemptive variant");
-      State := Initialize_System(2, 2, (10, 10));
       State.Available := (5, 5);
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
-      Request := (Process => 1, Resources => (1, 1));
       Result := Handle_Request(State, Request, Non_Preemptive);
       Assert(Result, "Non_Preemptive should grant valid request");
       Print_Result("14.1", True);
@@ -518,7 +510,6 @@ procedure Tests is
       State.Available := (5, 5);
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
-      Request := (Process => 1, Resources => (1, 1));
       Result := Handle_Request(State, Request, Static);
       Assert(Result, "Static should grant valid request");
       Print_Result("14.2", True);
@@ -529,7 +520,6 @@ procedure Tests is
       State.Available := (5, 5);
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
-      Request := (Process => 1, Resources => (1, 1));
       Result := Handle_Request(State, Request, Dynamic);
       Assert(Result, "Dynamic should grant valid request");
       Print_Result("14.3", True);
@@ -539,15 +529,14 @@ procedure Tests is
    --  TEST 15 - Utility Functions
    --  ====================================================================
    procedure Test_Utility_Functions is
-      State : System_State;
-      Need : Resource_Vector(2);
-      Total : Resource_Vector(2);
+      State : System_State := Initialize_System(2, 2, (10, 10));
+      Need : Resource_Vector (1 .. 2);
+      Total : Resource_Vector (1 .. 2);
    begin
       Print_Test_Header(15, "Utility Functions");
       
       --  15.1: Test Get_Process_Need
       Print_Assertion(1, "Test Get_Process_Need");
-      State := Initialize_System(2, 2, (10, 10));
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
       Need := Get_Process_Need(State, 1);
@@ -629,6 +618,6 @@ begin
    
 exception
    when E : others =>
-      Put_Line("ERROR: Unexpected exception in test suite: " & Ada.Exceptions.Exception_Message(E));
+      Put_Line("ERROR: Unexpected exception in test suite: " & Exception_Message(E));
       raise;
 end Tests;
