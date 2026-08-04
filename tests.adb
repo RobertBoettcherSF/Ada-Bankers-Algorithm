@@ -241,7 +241,7 @@ procedure Tests is
 
    --  TEST 10 - Static System Initialization
    procedure Test_Static_System is
-      State : System_State;
+      State : System_State := Initialize_System(2, 2, (10, 10));
    begin
       Print_Test_Header(10, "Static System Initialization");
       Print_Assertion(1, "Initialize static system");
@@ -313,7 +313,7 @@ procedure Tests is
       Print_Assertion(1, "System with no resources should raise exception");
       begin
          declare
-            State : System_State := Initialize_System(1, 1, (0));
+            State : System_State := Initialize_System(1, 1, (1 => 0));
          begin
             null;
          end;
@@ -326,7 +326,7 @@ procedure Tests is
       Print_Assertion(2, "System with no processes should raise exception");
       begin
          declare
-            State : System_State := Initialize_System(1, 1, (0));
+            State : System_State := Initialize_System(1, 1, (1 => 0));
          begin
             null;
          end;
