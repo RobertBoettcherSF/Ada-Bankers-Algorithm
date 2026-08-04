@@ -10,6 +10,17 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  HELPER FUNCTIONS
+
+   --  Helper function to get a row from a resource matrix
+   function Get_Row (Matrix : Resource_Matrix; Row : Positive) return Resource_Vector is
+      Result : Resource_Vector (Matrix'Range(2));
+   begin
+      for R in Matrix'Range(2) loop
+         Result(R) := Matrix(Row, R);
+      end loop;
+      return Result;
+   end Get_Row;
+
    --  ====================================================================
 
    function "<=" (Left, Right : Resource_Vector) return Boolean is
@@ -56,8 +67,14 @@ package body Bankers_Algorithm is
       return Result;
    end "-";
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  BASIC OPERATIONS
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Initialize_System (
@@ -94,8 +111,14 @@ package body Bankers_Algorithm is
       return Need;
    end Calculate_Need;
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  SAFETY CHECK ALGORITHM
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Is_Safe (State : System_State) return Safety_Result is
@@ -109,8 +132,8 @@ package body Bankers_Algorithm is
          Found := False;
          for P in State.Allocation'Range(1) loop
             if not Finished(P) then
-               if Need(P) <= Available_Copy then
-                  Available_Copy := Available_Copy + State.Allocation(P);
+               if Get_Row(Need, P) <= Available_Copy then
+                  Available_Copy := Available_Copy + Get_Row(State.Allocation, P);
                   Finished(P) := True;
                   Count := Count - 1;
                   Found := True;
@@ -142,10 +165,10 @@ package body Bankers_Algorithm is
          Found := False;
          for P in State.Allocation'Range(1) loop
             if not Finished(P) then
-               if Need(P) <= Available_Copy then
+               if Get_Row(Need, P) <= Available_Copy then
                   Temp_Sequence(Temp_Index) := P;
                   Temp_Index := Temp_Index + 1;
-                  Available_Copy := Available_Copy + State.Allocation(P);
+                  Available_Copy := Available_Copy + Get_Row(State.Allocation, P);
                   Finished(P) := True;
                   Count := Count - 1;
                   Found := True;
@@ -162,8 +185,14 @@ package body Bankers_Algorithm is
       end if;
    end Find_Safe_Sequence;
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  RESOURCE REQUEST HANDLING
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Is_Request_Valid (
@@ -265,7 +294,9 @@ package body Bankers_Algorithm is
          end if;
       end;
       Temp_State.Available := Temp_State.Available - Request.Resources;
-      Temp_State.Allocation(Request.Process) := Temp_State.Allocation(Request.Process) + Request.Resources;
+      for R in Temp_State.Available'Range loop
+         Temp_State.Allocation(Request.Process, R) := Temp_State.Allocation(Request.Process, R) + Request.Resources(R);
+      end loop;
       if Is_Safe(Temp_State) = Safe then
          State := Temp_State;
          return True;
@@ -277,8 +308,14 @@ package body Bankers_Algorithm is
          return False;
    end Handle_Request_Non_Preemptive;
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  PREEMPTIVE VARIANT
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Handle_Request_Preemptive (
@@ -303,7 +340,9 @@ package body Bankers_Algorithm is
       end if;
       if Request.Resources <= Temp_State.Available then
          Temp_State.Available := Temp_State.Available - Request.Resources;
-         Temp_State.Allocation(Request.Process) := Temp_State.Allocation(Request.Process) + Request.Resources;
+         for R in Temp_State.Available'Range loop
+            Temp_State.Allocation(Request.Process, R) := Temp_State.Allocation(Request.Process, R) + Request.Resources(R);
+         end loop;
          if Is_Safe(Temp_State) = Safe then
             State := Temp_State;
             return True;
@@ -363,7 +402,9 @@ package body Bankers_Algorithm is
             raise Unsafe_State_Exception with "Cannot satisfy request even with full preemption";
          end if;
          Temp_State.Available := Temp_State.Available - Request.Resources;
-         Temp_State.Allocation(Request.Process) := Temp_State.Allocation(Request.Process) + Request.Resources;
+         for R in Temp_State.Available'Range loop
+            Temp_State.Allocation(Request.Process, R) := Temp_State.Allocation(Request.Process, R) + Request.Resources(R);
+         end loop;
          if Is_Safe(Temp_State) = Safe then
             State := Temp_State;
             return True;
@@ -376,8 +417,14 @@ package body Bankers_Algorithm is
          return False;
    end Handle_Request_Preemptive;
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  STATIC VARIANT
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Initialize_Static_System (
@@ -403,8 +450,14 @@ package body Bankers_Algorithm is
       return Handle_Request_Non_Preemptive(State, Request);
    end Handle_Static_Request;
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  DYNAMIC VARIANT
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Add_Process (
@@ -456,15 +509,21 @@ package body Bankers_Algorithm is
       if Process < 1 or Process > State.Num_Processes then
          raise Index_Out_Of_Range with "Invalid process ID";
       end if;
-      Returned_Resources := State.Allocation(Process);
+      for R in State.Available'Range loop
+         Returned_Resources(R) := State.Allocation(Process, R);
+      end loop;
       New_State.Available := State.Available + Returned_Resources;
       declare
          New_Index : Positive := 1;
       begin
          for Old_Index in 1 .. State.Num_Processes loop
             if Old_Index /= Process then
-               New_State.Allocation(New_Index) := State.Allocation(Old_Index);
-               New_State.Max_Need(New_Index) := State.Max_Need(Old_Index);
+               for R in State.Available'Range loop
+                  New_State.Allocation(New_Index, R) := State.Allocation(Old_Index, R);
+               end loop;
+               for R in State.Available'Range loop
+                  New_State.Max_Need(New_Index, R) := State.Max_Need(Old_Index, R);
+               end loop;
                New_Index := New_Index + 1;
             end if;
          end loop;
@@ -481,8 +540,14 @@ package body Bankers_Algorithm is
       return Handle_Request_Non_Preemptive(State, Request);
    end Handle_Dynamic_Request;
 
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
    --  ALGORITHM SELECTOR
+
+   --  Helper function to get a row from a resource matrix
+
    --  ====================================================================
 
    function Handle_Request (
