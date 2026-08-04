@@ -371,7 +371,7 @@ procedure Tests is
    --  ====================================================================
    procedure Test_Dynamic_Add_Process is
       State : System_State := Initialize_System(2, 2, (10, 10));
-      New_Process_ID : Process_ID;
+      New_Process_ID : Process_Index;
    begin
       Print_Test_Header(11, "Dynamic System - Add Process");
       

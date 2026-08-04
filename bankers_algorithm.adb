@@ -9,9 +9,6 @@
 --  Author: Vibe Code (Mistral AI)
 --  Date: 2024
 
-with Ada.Containers.Vectors;
-with Ada.Text_IO; use Ada.Text_IO;
-
 package body Bankers_Algorithm is
 
    --  ====================================================================
@@ -85,8 +82,8 @@ package body Bankers_Algorithm is
 
    --  Initialize a system state with given parameters
    function Initialize_System (
-      Num_Processes  : Process_Count;
-      Num_Resources  : Resource_Count_Type;
+      Num_Processes  : Integer;
+      Num_Resources  : Integer;
       Total_Resources : Resource_Vector)
       return System_State is
    begin
@@ -136,10 +133,6 @@ package body Bankers_Algorithm is
    function Is_Safe (State : System_State) return Safety_Result is
       --  Make copies of available and allocation to work with
       Available_Copy : Resource_Vector (State.Available'Range) := State.Available;
-      Allocation_Copy : Resource_Matrix (State.Allocation'Range(1), State.Allocation'Range(2)) := State.Allocation;
-      Max_Need_Copy : Resource_Matrix (State.Max_Need'Range(1), State.Max_Need'Range(2)) := State.Max_Need;
-      
-      --  Track which processes have finished
       Finished : array (State.Allocation'Range(1)) of Boolean := (others => False);
       
       --  Need matrix
@@ -161,7 +154,7 @@ package body Bankers_Algorithm is
                --  Check if this process's need can be satisfied with available resources
                if Need(P) <= Available_Copy then
                   --  Process can finish: add its allocated resources to available
-                  Available_Copy := Available_Copy + Allocation_Copy(P);
+                  Available_Copy := Available_Copy + State.Allocation(P);
                   Finished(P) := True;
                   Count := Count - 1;
                   Found := True;
@@ -280,14 +273,10 @@ package body Bankers_Algorithm is
          end loop;
       end loop;
       
-      --  Check sum(allocation) + available <= total resources
-      --  (We can't check against total because we don't store it, but we can check consistency)
+      --  Check available is non-negative
       for R in State.Available'Range loop
-         if Total_Allocated(R) > State.Available(R) + Total_Allocated(R) then
-            --  This should never happen, but check for negative available
-            if State.Available(R) < 0 then
-               return False;
-            end if;
+         if State.Available(R) < 0 then
+            return False;
          end if;
       end loop;
       
@@ -309,7 +298,7 @@ package body Bankers_Algorithm is
    --  Get the need for a specific process
    function Get_Process_Need (
       State   : System_State;
-      Process : Process_ID) 
+      Process : Process_Index) 
       return Resource_Vector is
       
       Need : Resource_Vector (State.Max_Need'Range(2));
@@ -327,7 +316,7 @@ package body Bankers_Algorithm is
    --  Check if a process can finish with current allocation
    function Can_Process_Finish (
       State   : System_State;
-      Process : Process_ID) 
+      Process : Process_Index) 
       return Boolean is
       
       Need : Resource_Vector := Get_Process_Need(State, Process);
@@ -537,8 +526,8 @@ package body Bankers_Algorithm is
 
    --  Initialize a static system
    function Initialize_Static_System (
-      Num_Processes  : Process_Count;
-      Num_Resources  : Resource_Count_Type;
+      Num_Processes  : Integer;
+      Num_Resources  : Integer;
       Total_Resources : Resource_Vector;
       Max_Needs      : Resource_Matrix) 
       return System_State is
@@ -575,9 +564,9 @@ package body Bankers_Algorithm is
       State            : in out System_State;
       Max_Need         : Resource_Vector;
       Initial_Allocation : Resource_Vector) 
-      return Process_ID is
+      return Process_Index is
       
-      New_Num_Processes : Process_Count := State.Num_Processes + 1;
+      New_Num_Processes : Integer := State.Num_Processes + 1;
       New_State : System_State (New_Num_Processes, State.Num_Resources);
    begin
       --  Validate input
@@ -616,10 +605,10 @@ package body Bankers_Algorithm is
    --  Remove a process from the system
    function Remove_Process (
       State   : in out System_State;
-      Process : Process_ID) 
+      Process : Process_Index) 
       return Resource_Vector is
       
-      New_Num_Processes : Process_Count := State.Num_Processes - 1;
+      New_Num_Processes : Integer := State.Num_Processes - 1;
       New_State : System_State (New_Num_Processes, State.Num_Resources);
       Returned_Resources : Resource_Vector (1 .. State.Num_Resources);
    begin
@@ -635,7 +624,7 @@ package body Bankers_Algorithm is
       New_State.Available := State.Available + Returned_Resources;
       
       declare
-         New_Index : Process_ID := 1;
+         New_Index : Integer := 1;
       begin
          for Old_Index in 1 .. State.Num_Processes loop
             if Old_Index /= Process then

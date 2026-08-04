@@ -13,8 +13,6 @@
 --  Author: Vibe Code (Mistral AI)
 --  Date: 2024
 
-with Ada.Containers.Vectors;
-
 package Bankers_Algorithm is
 
    --  ====================================================================
@@ -47,29 +45,18 @@ package Bankers_Algorithm is
    --  Type for resource counts (non-negative integers)
    type Resource_Count is range 0 .. Integer'Last;
 
-   --  Type for process and resource indices
-   type Index_Type is range 1 .. Integer'Last;
-
-   --  Type for process IDs
-   type Process_ID is range 1 .. Integer'Last;
-   
-   --  Type for number of processes
-   type Process_Count is range 0 .. Integer'Last;
-
-   --  Type for resource types
-   type Resource_Type is range 1 .. Integer'Last;
-   
-   --  Type for number of resource types
-   type Resource_Count_Type is range 0 .. Integer'Last;
+   --  Type for process and resource indices (using Positive for 1-based indexing)
+   type Process_Index is range 1 .. Integer'Last;
+   type Resource_Index is range 1 .. Integer'Last;
 
    --  Vector type for available resources
-   type Resource_Vector is array (Resource_Type range <>) of Resource_Count;
+   type Resource_Vector is array (Resource_Index range <>) of Resource_Count;
 
    --  Matrix type for allocation and maximum needs
-   type Resource_Matrix is array (Process_ID range <>, Resource_Type range <>) of Resource_Count;
+   type Resource_Matrix is array (Process_Index range <>, Resource_Index range <>) of Resource_Count;
 
    --  Type to represent the system state
-   type System_State (Num_Processes : Process_Count; Num_Resources : Resource_Count_Type) is
+   type System_State (Num_Processes : Integer; Num_Resources : Integer) is
       record
          Available   : Resource_Vector (1 .. Num_Resources);
          Allocation  : Resource_Matrix (1 .. Num_Processes, 1 .. Num_Resources);
@@ -77,9 +64,9 @@ package Bankers_Algorithm is
       end record;
 
    --  Type to represent a resource request
-   type Resource_Request (Num_Resources : Resource_Count_Type) is
+   type Resource_Request (Num_Resources : Integer) is
       record
-         Process    : Process_ID;
+         Process    : Process_Index;
          Resources  : Resource_Vector (1 .. Num_Resources);
       end record;
 
@@ -88,6 +75,9 @@ package Bankers_Algorithm is
 
    --  Type for algorithm variant selection
    type Algorithm_Variant is (Non_Preemptive, Preemptive, Static, Dynamic);
+
+   --  Type for process sequence (used in safe sequence finding)
+   type Process_Sequence is array (Positive range <>) of Process_Index;
 
    --  ====================================================================
    --  BASIC OPERATIONS
@@ -100,8 +90,8 @@ package Bankers_Algorithm is
    --    Total_Resources - Total amount of each resource in the system
    --  Returns: Initialized system state with all allocations set to zero
    function Initialize_System (
-      Num_Processes  : Process_ID;
-      Num_Resources  : Resource_Type;
+      Num_Processes  : Integer;
+      Num_Resources  : Integer;
       Total_Resources : Resource_Vector)
       return System_State;
 
@@ -127,8 +117,6 @@ package Bankers_Algorithm is
    --    State    - The system state
    --    Sequence - Output parameter: array of process IDs in safe order
    --  Returns: True if safe sequence exists, False otherwise
-   --  Note: Uses a simple array for the sequence to avoid generic package issues
-   type Process_Sequence is array (Positive range <>) of Process_ID;
    function Find_Safe_Sequence (
       State    : System_State;
       Sequence : out Process_Sequence) 
@@ -177,8 +165,8 @@ package Bankers_Algorithm is
    --    Max_Needs      - Maximum needs for each process
    --  Returns: Initialized static system state
    function Initialize_Static_System (
-      Num_Processes  : Process_ID;
-      Num_Resources  : Resource_Type;
+      Num_Processes  : Integer;
+      Num_Resources  : Integer;
       Total_Resources : Resource_Vector;
       Max_Needs      : Resource_Matrix) 
       return System_State;
@@ -205,7 +193,7 @@ package Bankers_Algorithm is
       State            : in out System_State;
       Max_Need         : Resource_Vector;
       Initial_Allocation : Resource_Vector) 
-      return Process_ID;
+      return Process_Index;
 
    --  Remove a process from the system (dynamic variant)
    --  Parameters:
@@ -214,7 +202,7 @@ package Bankers_Algorithm is
    --  Returns: Resources that were allocated to the removed process
    function Remove_Process (
       State   : in out System_State;
-      Process : Process_ID) 
+      Process : Process_Index) 
       return Resource_Vector;
 
    --  Handle request in dynamic system (processes can be added/removed)
@@ -256,7 +244,7 @@ package Bankers_Algorithm is
    --  Returns: Need vector for the process
    function Get_Process_Need (
       State   : System_State;
-      Process : Process_ID) 
+      Process : Process_Index) 
       return Resource_Vector;
 
    --  Check if a process can finish with current allocation
@@ -266,7 +254,7 @@ package Bankers_Algorithm is
    --  Returns: True if process can finish (need <= available), False otherwise
    function Can_Process_Finish (
       State   : System_State;
-      Process : Process_ID) 
+      Process : Process_Index) 
       return Boolean;
 
    --  ====================================================================
