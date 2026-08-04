@@ -425,10 +425,18 @@ package body Bankers_Algorithm is
          raise No_Resources_Exception with "Not enough resources for initial allocation";
       end if;
       New_State.Available := State.Available - Initial_Allocation;
-      New_State.Allocation(1 .. State.Num_Processes, 1 .. State.Num_Resources) := State.Allocation;
-      New_State.Max_Need(1 .. State.Num_Processes, 1 .. State.Num_Resources) := State.Max_Need;
-      New_State.Allocation(New_Num_Processes, 1 .. State.Num_Resources) := Initial_Allocation;
-      New_State.Max_Need(New_Num_Processes, 1 .. State.Num_Resources) := Max_Need;
+      --  Copy existing allocations and max needs
+      for P in 1 .. State.Num_Processes loop
+         for R in 1 .. State.Num_Resources loop
+            New_State.Allocation(P, R) := State.Allocation(P, R);
+            New_State.Max_Need(P, R) := State.Max_Need(P, R);
+         end loop;
+      end loop;
+      --  Add new process
+      for R in 1 .. State.Num_Resources loop
+         New_State.Allocation(New_Num_Processes, R) := Initial_Allocation(R);
+         New_State.Max_Need(New_Num_Processes, R) := Max_Need(R);
+      end loop;
       if Is_Safe(New_State) = Safe then
          State := New_State;
          return New_Num_Processes;
