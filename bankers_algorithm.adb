@@ -65,25 +65,14 @@ package body Bankers_Algorithm is
       return Result;
    end "-";
 
-   --  Check if all elements in a vector are >= 0
-   function Is_Non_Negative (Vec : Resource_Vector) return Boolean is
-   begin
-      for I in Vec'Range loop
-         if Vec(I) < 0 then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Is_Non_Negative;
-
    --  ====================================================================
    --  BASIC OPERATIONS
    --  ====================================================================
 
    --  Initialize a system state with given parameters
    function Initialize_System (
-      Num_Processes  : Integer;
-      Num_Resources  : Integer;
+      Num_Processes  : Process_Index;
+      Num_Resources  : Resource_Index;
       Total_Resources : Resource_Vector)
       return System_State is
    begin
@@ -127,11 +116,8 @@ package body Bankers_Algorithm is
    --  ====================================================================
 
    --  Check if the current system state is safe
-   --  Implementation: Try to find a process that can finish with current available resources
-   --  If found, assume it finishes and releases its resources, then repeat
-   --  If all processes can finish, the state is safe
    function Is_Safe (State : System_State) return Safety_Result is
-      --  Make copies of available and allocation to work with
+      --  Make copies to work with
       Available_Copy : Resource_Vector (State.Available'Range) := State.Available;
       Finished : array (State.Allocation'Range(1)) of Boolean := (others => False);
       
@@ -175,7 +161,6 @@ package body Bankers_Algorithm is
    end Is_Safe;
 
    --  Find a safe sequence of process execution
-   --  Returns the sequence of process IDs that can finish safely
    function Find_Safe_Sequence (
       State    : System_State;
       Sequence : out Process_Sequence) 
@@ -380,7 +365,6 @@ package body Bankers_Algorithm is
    --  ====================================================================
 
    --  Handle a resource request using the preemptive variant
-   --  In preemptive mode, we can take resources from other processes if needed
    function Handle_Request_Preemptive (
       State   : in out System_State;
       Request : Resource_Request) 
@@ -424,14 +408,8 @@ package body Bankers_Algorithm is
       end if;
       
       --  Preemptive approach: try to take resources from other processes
-      --  We need to find a set of processes to preempt such that:
-      --  1. Their allocated resources >= (Request - Available)
-      --  2. After preemption and granting, the state is safe
-      
       declare
          Required : Resource_Vector := Request.Resources - Temp_State.Available;
-         
-         --  Only proceed if we need to preempt
          Preempt_Amount : Resource_Vector (Temp_State.Available'Range) := (others => 0);
       begin
          --  Calculate how much we need to preempt
@@ -447,18 +425,12 @@ package body Bankers_Algorithm is
          end if;
          
          --  Try to find processes to preempt
-         --  Simple strategy: preempt from processes that have more than their need
-         --  or from processes that can be safely preempted
-         
          for P in Temp_State.Allocation'Range(1) loop
             if P = Request.Process then
-               --  Don't preempt from the requesting process
                null;
             else
-               --  Check if this process has resources we can preempt
                for R in Preempt_Amount'Range loop
                   if Preempt_Amount(R) > 0 and Temp_State.Allocation(P, R) > 0 then
-                     --  Take what we need
                      declare
                         Take : Resource_Count := Integer'Min(Preempt_Amount(R), Temp_State.Allocation(P, R));
                      begin
@@ -469,14 +441,12 @@ package body Bankers_Algorithm is
                   end if;
                end loop;
                
-               --  Check if we've satisfied the preemption need
                exit when Preempt_Amount = (others => 0);
             end if;
          end loop;
          
-         --  If we still need to preempt, try again with more aggressive approach
+         --  If we still need to preempt, try more aggressive approach
          if Preempt_Amount /= (others => 0) then
-            --  Try to preempt from all processes (including those that might not finish)
             for P in Temp_State.Allocation'Range(1) loop
                if P = Request.Process then
                   null;
@@ -521,13 +491,13 @@ package body Bankers_Algorithm is
    end Handle_Request_Preemptive;
 
    --  ====================================================================
-   --  STATIC VARIANT (Fixed number of processes)
+   --  STATIC VARIANT
    --  ====================================================================
 
    --  Initialize a static system
    function Initialize_Static_System (
-      Num_Processes  : Integer;
-      Num_Resources  : Integer;
+      Num_Processes  : Process_Index;
+      Num_Resources  : Resource_Index;
       Total_Resources : Resource_Vector;
       Max_Needs      : Resource_Matrix) 
       return System_State is
@@ -551,12 +521,11 @@ package body Bankers_Algorithm is
       Request : Resource_Request) 
       return Boolean is
    begin
-      --  Static system uses non-preemptive algorithm
       return Handle_Request_Non_Preemptive(State, Request);
    end Handle_Static_Request;
 
    --  ====================================================================
-   --  DYNAMIC VARIANT (Processes can enter/leave)
+   --  DYNAMIC VARIANT
    --  ====================================================================
 
    --  Add a new process to the system
@@ -566,7 +535,7 @@ package body Bankers_Algorithm is
       Initial_Allocation : Resource_Vector) 
       return Process_Index is
       
-      New_Num_Processes : Integer := State.Num_Processes + 1;
+      New_Num_Processes : Process_Index := State.Num_Processes + 1;
       New_State : System_State (New_Num_Processes, State.Num_Resources);
    begin
       --  Validate input
@@ -608,7 +577,7 @@ package body Bankers_Algorithm is
       Process : Process_Index) 
       return Resource_Vector is
       
-      New_Num_Processes : Integer := State.Num_Processes - 1;
+      New_Num_Processes : Process_Index := State.Num_Processes - 1;
       New_State : System_State (New_Num_Processes, State.Num_Resources);
       Returned_Resources : Resource_Vector (1 .. State.Num_Resources);
    begin
@@ -624,7 +593,7 @@ package body Bankers_Algorithm is
       New_State.Available := State.Available + Returned_Resources;
       
       declare
-         New_Index : Integer := 1;
+         New_Index : Process_Index := 1;
       begin
          for Old_Index in 1 .. State.Num_Processes loop
             if Old_Index /= Process then
@@ -645,8 +614,6 @@ package body Bankers_Algorithm is
       Request : Resource_Request) 
       return Boolean is
    begin
-      --  Dynamic system uses non-preemptive algorithm by default
-      --  (Preemptive can be used if needed)
       return Handle_Request_Non_Preemptive(State, Request);
    end Handle_Dynamic_Request;
 

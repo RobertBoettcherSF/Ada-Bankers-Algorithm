@@ -56,7 +56,7 @@ package Bankers_Algorithm is
    type Resource_Matrix is array (Process_Index range <>, Resource_Index range <>) of Resource_Count;
 
    --  Type to represent the system state
-   type System_State (Num_Processes : Integer; Num_Resources : Integer) is
+   type System_State (Num_Processes : Process_Index; Num_Resources : Resource_Index) is
       record
          Available   : Resource_Vector (1 .. Num_Resources);
          Allocation  : Resource_Matrix (1 .. Num_Processes, 1 .. Num_Resources);
@@ -64,7 +64,7 @@ package Bankers_Algorithm is
       end record;
 
    --  Type to represent a resource request
-   type Resource_Request (Num_Resources : Integer) is
+   type Resource_Request (Num_Resources : Resource_Index) is
       record
          Process    : Process_Index;
          Resources  : Resource_Vector (1 .. Num_Resources);
@@ -90,8 +90,8 @@ package Bankers_Algorithm is
    --    Total_Resources - Total amount of each resource in the system
    --  Returns: Initialized system state with all allocations set to zero
    function Initialize_System (
-      Num_Processes  : Integer;
-      Num_Resources  : Integer;
+      Num_Processes  : Process_Index;
+      Num_Resources  : Resource_Index;
       Total_Resources : Resource_Vector)
       return System_State;
 
@@ -165,8 +165,8 @@ package Bankers_Algorithm is
    --    Max_Needs      - Maximum needs for each process
    --  Returns: Initialized static system state
    function Initialize_Static_System (
-      Num_Processes  : Integer;
-      Num_Resources  : Integer;
+      Num_Processes  : Process_Index;
+      Num_Resources  : Resource_Index;
       Total_Resources : Resource_Vector;
       Max_Needs      : Resource_Matrix) 
       return System_State;

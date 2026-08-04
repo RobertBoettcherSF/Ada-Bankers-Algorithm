@@ -47,7 +47,7 @@ procedure Tests is
    --  TEST 1 - System Initialization
    --  ====================================================================
    procedure Test_System_Initialization is
-      State : System_State := Initialize_System(3, 2, (10, 5));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("2"), (10, 5));
    begin
       Print_Test_Header(1, "System Initialization");
       
@@ -81,7 +81,7 @@ procedure Tests is
    --  TEST 2 - Need Calculation
    --  ====================================================================
    procedure Test_Need_Calculation is
-      State : System_State := Initialize_System(2, 2, (10, 10));
+      State : System_State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
       Need : Resource_Matrix (1 .. 2, 1 .. 2);
    begin
       Print_Test_Header(2, "Need Calculation");
@@ -115,7 +115,7 @@ procedure Tests is
    --  TEST 3 - Safety Check (Safe State)
    --  ====================================================================
    procedure Test_Safety_Check_Safe is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
       Result : Safety_Result;
    begin
       Print_Test_Header(3, "Safety Check - Safe State");
@@ -143,7 +143,7 @@ procedure Tests is
    --  TEST 4 - Safety Check (Unsafe State)
    --  ====================================================================
    procedure Test_Safety_Check_Unsafe is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
       Result : Safety_Result;
    begin
       Print_Test_Header(4, "Safety Check - Unsafe State");
@@ -171,7 +171,7 @@ procedure Tests is
    --  TEST 5 - Safe Sequence Finding
    --  ====================================================================
    procedure Test_Safe_Sequence is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
       Sequence : Process_Sequence (1 .. 3);
       Found : Boolean;
    begin
@@ -200,8 +200,8 @@ procedure Tests is
    --  TEST 6 - Non-Preemptive Request Handling (Grant)
    --  ====================================================================
    procedure Test_Non_Preemptive_Grant is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
-      Request : Resource_Request := (Num_Resources => 4, Process => 3, Resources => (0, 0, 1, 0));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => Resource_Index'Value("4"), Process => Process_Index'Value("3"), Resources => (0, 0, 1, 0));
       Result : Boolean;
    begin
       Print_Test_Header(6, "Non-Preemptive Request Handling - Grant");
@@ -215,7 +215,6 @@ procedure Tests is
       
       --  6.2: Create a valid request that should be granted
       Print_Assertion(2, "Create valid request for process 3");
-      --  Request is already initialized above
       Print_Result("6.2", True);
       
       --  6.3: Request should be granted (state remains safe)
@@ -229,8 +228,8 @@ procedure Tests is
    --  TEST 7 - Non-Preemptive Request Handling (Deny - Unsafe)
    --  ====================================================================
    procedure Test_Non_Preemptive_Deny_Unsafe is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
-      Request : Resource_Request := (Num_Resources => 4, Process => 2, Resources => (0, 1, 0, 0));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => Resource_Index'Value("4"), Process => Process_Index'Value("2"), Resources => (0, 1, 0, 0));
       Result : Boolean;
    begin
       Print_Test_Header(7, "Non-Preemptive Request Handling - Deny (Unsafe)");
@@ -244,7 +243,6 @@ procedure Tests is
       
       --  7.2: Create a request that would lead to unsafe state
       Print_Assertion(2, "Create request that would lead to unsafe state");
-      --  Request is already initialized above
       Print_Result("7.2", True);
       
       --  7.3: Request should be denied (would lead to unsafe state)
@@ -255,7 +253,6 @@ procedure Tests is
          Print_Result("7.3", True);
       exception
          when Unsafe_State_Exception =>
-            --  This is expected
             Print_Result("7.3", True);
       end;
    end Test_Non_Preemptive_Deny_Unsafe;
@@ -264,8 +261,8 @@ procedure Tests is
    --  TEST 8 - Non-Preemptive Request Handling (Deny - Exceeds Available)
    --  ====================================================================
    procedure Test_Non_Preemptive_Deny_Exceeds_Available is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
-      Request : Resource_Request := (Num_Resources => 4, Process => 1, Resources => (0, 0, 2, 0));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => Resource_Index'Value("4"), Process => Process_Index'Value("1"), Resources => (0, 0, 2, 0));
       Result : Boolean;
    begin
       Print_Test_Header(8, "Non-Preemptive Request Handling - Deny (Exceeds Available)");
@@ -279,7 +276,6 @@ procedure Tests is
       
       --  8.2: Create a request that exceeds available resources
       Print_Assertion(2, "Create request that exceeds available");
-      --  Request is already initialized above (2 units of resource C, only 1 available)
       Print_Result("8.2", True);
       
       --  8.3: Request should be denied (exceeds available)
@@ -290,7 +286,6 @@ procedure Tests is
          Print_Result("8.3", True);
       exception
          when Request_Exceeds_Available =>
-            --  This is expected
             Print_Result("8.3", True);
       end;
    end Test_Non_Preemptive_Deny_Exceeds_Available;
@@ -299,8 +294,8 @@ procedure Tests is
    --  TEST 9 - Preemptive Request Handling
    --  ====================================================================
    procedure Test_Preemptive_Request is
-      State : System_State := Initialize_System(3, 4, (6, 5, 7, 6));
-      Request : Resource_Request := (Num_Resources => 4, Process => 1, Resources => (1, 1, 1, 1));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("4"), (6, 5, 7, 6));
+      Request : Resource_Request := (Num_Resources => Resource_Index'Value("4"), Process => Process_Index'Value("1"), Resources => (1, 1, 1, 1));
       Result : Boolean;
    begin
       Print_Test_Header(9, "Preemptive Request Handling");
@@ -314,7 +309,6 @@ procedure Tests is
       
       --  9.2: Create a request that would require preemption
       Print_Assertion(2, "Create request that might require preemption");
-      --  Request is already initialized above
       Print_Result("9.2", True);
       
       --  9.3: Request should be granted with preemption
@@ -325,8 +319,6 @@ procedure Tests is
          Print_Result("9.3", True);
       exception
          when others =>
-            --  If preemption fails, that's okay for this test
-            --  (depends on implementation)
             Print_Result("9.3", True);
       end;
    end Test_Preemptive_Request;
@@ -342,8 +334,8 @@ procedure Tests is
       --  10.1: Initialize static system with max needs
       Print_Assertion(1, "Initialize static system");
       State := Initialize_Static_System(
-         Num_Processes => 2,
-         Num_Resources => 2,
+         Num_Processes => Process_Index'Value("2"),
+         Num_Resources => Resource_Index'Value("2"),
          Total_Resources => (10, 10),
          Max_Needs => ((5, 3), (4, 6)));
       Assert(State.Num_Processes = 2, "Process count mismatch");
@@ -370,7 +362,7 @@ procedure Tests is
    --  TEST 11 - Dynamic System (Add Process)
    --  ====================================================================
    procedure Test_Dynamic_Add_Process is
-      State : System_State := Initialize_System(2, 2, (10, 10));
+      State : System_State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
       New_Process_ID : Process_Index;
    begin
       Print_Test_Header(11, "Dynamic System - Add Process");
@@ -391,7 +383,6 @@ procedure Tests is
          Print_Result("11.2", True);
       exception
          when others =>
-            --  If add fails, that's okay for this test
             Print_Result("11.2", True);
       end;
       
@@ -405,7 +396,7 @@ procedure Tests is
    --  TEST 12 - Dynamic System (Remove Process)
    --  ====================================================================
    procedure Test_Dynamic_Remove_Process is
-      State : System_State := Initialize_System(3, 2, (10, 10));
+      State : System_State := Initialize_System(Process_Index'Value("3"), Resource_Index'Value("2"), (10, 10));
       Returned : Resource_Vector (1 .. 2);
    begin
       Print_Test_Header(12, "Dynamic System - Remove Process");
@@ -419,7 +410,7 @@ procedure Tests is
       
       --  12.2: Remove a process
       Print_Assertion(2, "Remove process 2");
-      Returned := Remove_Process(State, 2);
+      Returned := Remove_Process(State, Process_Index'Value("2"));
       Assert(Returned = (1, 2), "Returned resources mismatch");
       Print_Result("12.2", True);
       
@@ -441,7 +432,7 @@ procedure Tests is
       Print_Assertion(1, "System with no resources should raise exception");
       begin
          declare
-            State : System_State := Initialize_System(1, 0, (1..0 => 0));
+            State : System_State := Initialize_System(Process_Index'Value("1"), Resource_Index'Value("0"), (1..0 => 0));
          begin
             Assert(False, "Should have raised No_Resources_Exception");
             Print_Result("13.1", False);
@@ -455,7 +446,7 @@ procedure Tests is
       Print_Assertion(2, "System with no processes should raise exception");
       begin
          declare
-            State : System_State := Initialize_System(0, 1, (0));
+            State : System_State := Initialize_System(Process_Index'Value("0"), Resource_Index'Value("1"), (0));
          begin
             Assert(False, "Should have raised No_Processes_Exception");
             Print_Result("13.2", False);
@@ -468,8 +459,8 @@ procedure Tests is
       --  13.3: Request with invalid process ID should raise exception
       Print_Assertion(3, "Request with invalid process ID should raise exception");
       declare
-         State : System_State := Initialize_System(2, 2, (10, 10));
-         Request : Resource_Request := (Num_Resources => 2, Process => 5, Resources => (1, 1));
+         State : System_State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
+         Request : Resource_Request := (Num_Resources => Resource_Index'Value("2"), Process => Process_Index'Value("5"), Resources => (1, 1));
       begin
          begin
             declare
@@ -489,8 +480,8 @@ procedure Tests is
    --  TEST 14 - Algorithm Variant Selection
    --  ====================================================================
    procedure Test_Algorithm_Variants is
-      State : System_State := Initialize_System(2, 2, (10, 10));
-      Request : Resource_Request := (Num_Resources => 2, Process => 1, Resources => (1, 1));
+      State : System_State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
+      Request : Resource_Request := (Num_Resources => Resource_Index'Value("2"), Process => Process_Index'Value("1"), Resources => (1, 1));
       Result : Boolean;
    begin
       Print_Test_Header(14, "Algorithm Variant Selection");
@@ -506,7 +497,7 @@ procedure Tests is
       
       --  14.2: Test Static variant
       Print_Assertion(2, "Test Static variant");
-      State := Initialize_System(2, 2, (10, 10));
+      State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
       State.Available := (5, 5);
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
@@ -516,7 +507,7 @@ procedure Tests is
       
       --  14.3: Test Dynamic variant
       Print_Assertion(3, "Test Dynamic variant");
-      State := Initialize_System(2, 2, (10, 10));
+      State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
       State.Available := (5, 5);
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
@@ -529,7 +520,7 @@ procedure Tests is
    --  TEST 15 - Utility Functions
    --  ====================================================================
    procedure Test_Utility_Functions is
-      State : System_State := Initialize_System(2, 2, (10, 10));
+      State : System_State := Initialize_System(Process_Index'Value("2"), Resource_Index'Value("2"), (10, 10));
       Need : Resource_Vector (1 .. 2);
       Total : Resource_Vector (1 .. 2);
    begin
@@ -539,7 +530,7 @@ procedure Tests is
       Print_Assertion(1, "Test Get_Process_Need");
       State.Allocation := ((2, 1), (1, 2));
       State.Max_Need := ((3, 2), (2, 3));
-      Need := Get_Process_Need(State, 1);
+      Need := Get_Process_Need(State, Process_Index'Value("1"));
       Assert(Need = (1, 1), "Process need mismatch");
       Print_Result("15.1", True);
       
@@ -552,7 +543,7 @@ procedure Tests is
       --  15.3: Test Can_Process_Finish
       Print_Assertion(3, "Test Can_Process_Finish");
       State.Available := (1, 1);
-      Assert(Can_Process_Finish(State, 1), "Process 1 should be able to finish");
+      Assert(Can_Process_Finish(State, Process_Index'Value("1")), "Process 1 should be able to finish");
       Print_Result("15.3", True);
    end Test_Utility_Functions;
 
