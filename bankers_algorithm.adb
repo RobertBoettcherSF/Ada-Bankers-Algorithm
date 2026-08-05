@@ -68,12 +68,10 @@ package body Bankers_Algorithm is
    end "-";
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  BASIC OPERATIONS
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
@@ -112,12 +110,10 @@ package body Bankers_Algorithm is
    end Calculate_Need;
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  SAFETY CHECK ALGORITHM
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
@@ -186,12 +182,10 @@ package body Bankers_Algorithm is
    end Find_Safe_Sequence;
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  RESOURCE REQUEST HANDLING
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
@@ -309,12 +303,10 @@ package body Bankers_Algorithm is
    end Handle_Request_Non_Preemptive;
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  PREEMPTIVE VARIANT
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
@@ -418,12 +410,10 @@ package body Bankers_Algorithm is
    end Handle_Request_Preemptive;
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  STATIC VARIANT
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
@@ -451,12 +441,10 @@ package body Bankers_Algorithm is
    end Handle_Static_Request;
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  DYNAMIC VARIANT
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
@@ -541,12 +529,10 @@ package body Bankers_Algorithm is
    end Handle_Dynamic_Request;
 
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
    --  ALGORITHM SELECTOR
 
-   --  Helper function to get a row from a resource matrix
 
    --  ====================================================================
 
