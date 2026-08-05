@@ -2,6 +2,20 @@
 
 A comprehensive Ada implementation of the **Banker's Algorithm** for deadlock avoidance, based on the [Wikipedia article](https://en.wikipedia.org/wiki/Banker's_algorithm).
 
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/RobertBoettcherSF/Ada-Bankers-Algorithm.git
+cd Ada-Bankers-Algorithm
+
+# Install GNAT (Ada compiler) if not already installed
+# On Debian/Ubuntu: sudo apt-get install gnat
+
+# Run all tests
+make test
+```
+
 ## Project Overview
 
 This project provides a complete, strongly-typed Ada implementation of the Banker's Algorithm, a resource allocation and deadlock avoidance algorithm developed by Edsger Dijkstra. The algorithm tests for safety by simulating resource allocation and checking for potential deadlock conditions before allowing allocation to continue.
@@ -275,6 +289,24 @@ The Banker's Algorithm has the following complexity:
 - **Space**: O(n × m) for storing state
 
 The implementation is optimized for clarity and correctness over raw performance, as is appropriate for a deadlock avoidance algorithm where correctness is paramount.
+
+## Implementation Notes
+
+### Ada-Specific Considerations
+
+This implementation uses Ada's discriminated types for `System_State`, which allows type-safe arrays sized according to the number of processes and resources. However, due to Ada's discriminant constraints:
+
+- **Dynamic operations** (`Add_Process`, `Remove_Process`) create new states but cannot modify the discriminant of an existing state variable
+- The functions still validate requests and check safety correctly
+- Tests have been adapted to work within these constraints
+
+### Type Safety
+
+The implementation uses strong typing throughout:
+- `Resource_Count`: Integer type for resource quantities (allows negative values for need calculations)
+- `Resource_Vector`: Unconstrained array for resource lists
+- `Resource_Matrix`: Unconstrained 2D array for allocation/max matrices
+- `System_State`: Discriminated record with process and resource counts
 
 ## Limitations
 

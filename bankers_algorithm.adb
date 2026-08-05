@@ -95,10 +95,14 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  BASIC OPERATIONS
-
-
    --  ====================================================================
 
+   --  Initialize a new system state with given number of processes and resources
+   --  Parameters:
+   --    Num_Processes: Number of processes in the system
+   --    Num_Resources: Number of resource types
+   --    Total_Resources: Initial available resources for each type
+   --  Returns: New system state with zero allocations and max needs
    function Initialize_System (
       Num_Processes  : Positive;
       Num_Resources  : Positive;
@@ -137,10 +141,14 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  SAFETY CHECK ALGORITHM
-
-
    --  ====================================================================
 
+   --  Check if the current system state is safe (all processes can finish)
+   --  Uses the Banker's Algorithm: finds a sequence where each process's need
+   --  can be satisfied by available resources, releasing its allocation back
+   --  Parameters:
+   --    State: The system state to check
+   --  Returns: Safe if all processes can finish, Unsafe otherwise
    function Is_Safe (State : System_State) return Safety_Result is
       Available_Copy : Resource_Vector (State.Available'Range) := State.Available;
       Finished : array (State.Allocation'Range(1)) of Boolean := (State.Allocation'Range(1) => False);
@@ -210,10 +218,13 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  RESOURCE REQUEST HANDLING
-
-
    --  ====================================================================
 
+   --  Validate a resource request before processing
+   --  Parameters:
+   --    State: Current system state
+   --    Request: The resource request to validate
+   --  Returns: True if request is valid (doesn't exceed need or available), False otherwise
    function Is_Request_Valid (
       State   : System_State;
       Request : Resource_Request) 
@@ -330,10 +341,16 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  PREEMPTIVE VARIANT
-
-
    --  ====================================================================
 
+   --  Handle a resource request with preemption allowed
+   --  If request cannot be satisfied with available resources, this variant
+   --  will attempt to reclaim resources from other processes to satisfy it
+   --  Parameters:
+   --    State: The system state (in out - may be modified if preemption occurs)
+   --    Request: The resource request to handle
+   --  Returns: True if request was granted, False otherwise
+   --  Raises: Various exceptions for invalid requests or unsafe states
    function Handle_Request_Preemptive (
       State   : in out System_State;
       Request : Resource_Request) 
@@ -434,10 +451,16 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  STATIC VARIANT
-
-
    --  ====================================================================
 
+   --  Initialize a static system with pre-defined maximum needs
+   --  In static systems, the maximum needs are known in advance and fixed
+   --  Parameters:
+   --    Num_Processes: Number of processes
+   --    Num_Resources: Number of resource types
+   --    Total_Resources: Initial available resources
+   --    Max_Needs: Pre-defined maximum resource needs for each process
+   --  Returns: Initialized system state
    function Initialize_Static_System (
       Num_Processes  : Positive;
       Num_Resources  : Positive;
@@ -465,10 +488,17 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  DYNAMIC VARIANT
-
-
    --  ====================================================================
 
+   --  Add a new process to the system dynamically
+   --  Note: Due to Ada discriminant limitations, this creates a new state
+   --  but cannot modify the discriminant of an existing state variable
+   --  Parameters:
+   --    State: Current system state
+   --    Max_Need: Maximum resource needs for the new process
+   --    Initial_Allocation: Initial resources to allocate to the new process
+   --  Returns: Process ID of the new process
+   --  Raises: Exceptions for invalid parameters or if adding would create unsafe state
    function Add_Process (
       State            : in out System_State;
       Max_Need         : Resource_Vector;
@@ -555,10 +585,15 @@ package body Bankers_Algorithm is
 
    --  ====================================================================
    --  ALGORITHM SELECTOR
-
-
    --  ====================================================================
 
+   --  Main entry point for handling resource requests
+   --  Selects the appropriate algorithm variant based on the Variant parameter
+   --  Parameters:
+   --    State: The system state (in out - may be modified)
+   --    Request: The resource request to handle
+   --    Variant: Which algorithm variant to use (default: Non_Preemptive)
+   --  Returns: True if request was granted, False otherwise
    function Handle_Request (
       State   : in out System_State;
       Request : Resource_Request;
