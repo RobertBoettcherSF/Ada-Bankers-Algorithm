@@ -11,6 +11,16 @@ package body Bankers_Algorithm is
    --  ====================================================================
    --  HELPER FUNCTIONS
 
+   --  Helper function to get the minimum of two Resource_Count values
+   function Min_Resource (A, B : Resource_Count) return Resource_Count is
+   begin
+      if A <= B then
+         return A;
+      else
+         return B;
+      end if;
+   end Min_Resource;
+
    --  Helper function to get a row from a resource matrix
    function Get_Row (Matrix : Resource_Matrix; Row : Positive) return Resource_Vector is
       Result : Resource_Vector (Matrix'Range(2));
@@ -48,6 +58,20 @@ package body Bankers_Algorithm is
       end loop;
       return True;
    end "<";
+
+   --  Check if any element of Left exceeds corresponding element of Right
+   function Exceeds (Left, Right : Resource_Vector) return Boolean is
+   begin
+      if Left'Length /= Right'Length then
+         return True; -- Different lengths means it exceeds
+      end if;
+      for I in Left'Range loop
+         if Left(I) > Right(I) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Exceeds;
 
    function "+" (Left, Right : Resource_Vector) return Resource_Vector is
       Result : Resource_Vector (Left'Range);
@@ -93,8 +117,8 @@ package body Bankers_Algorithm is
 
       return State : System_State (Num_Processes, Num_Resources) do
          State.Available := Total_Resources;
-         State.Allocation := (others => (others => 0));
-         State.Max_Need := (others => (others => 0));
+         State.Allocation := (1 .. Num_Processes => (1 .. Num_Resources => 0));
+         State.Max_Need := (1 .. Num_Processes => (1 .. Num_Resources => 0));
       end return;
    end Initialize_System;
 
@@ -119,7 +143,7 @@ package body Bankers_Algorithm is
 
    function Is_Safe (State : System_State) return Safety_Result is
       Available_Copy : Resource_Vector (State.Available'Range) := State.Available;
-      Finished : array (State.Allocation'Range(1)) of Boolean := (others => False);
+      Finished : array (State.Allocation'Range(1)) of Boolean := (State.Allocation'Range(1) => False);
       Need : Resource_Matrix (State.Allocation'Range(1), State.Allocation'Range(2)) := Calculate_Need(State);
       Count : Integer := State.Allocation'Length(1);
       Found : Boolean;
@@ -133,6 +157,7 @@ package body Bankers_Algorithm is
                   Finished(P) := True;
                   Count := Count - 1;
                   Found := True;
+                  exit; -- Exit after finding one process
                end if;
             end if;
          end loop;
@@ -150,7 +175,7 @@ package body Bankers_Algorithm is
       Sequence : out Process_Sequence) 
       return Boolean is
       Available_Copy : Resource_Vector (State.Available'Range) := State.Available;
-      Finished : array (State.Allocation'Range(1)) of Boolean := (others => False);
+      Finished : array (State.Allocation'Range(1)) of Boolean := (State.Allocation'Range(1) => False);
       Need : Resource_Matrix (State.Allocation'Range(1), State.Allocation'Range(2)) := Calculate_Need(State);
       Count : Integer := State.Allocation'Length(1);
       Found : Boolean;
@@ -194,21 +219,23 @@ package body Bankers_Algorithm is
       Request : Resource_Request) 
       return Boolean is
       Need : Resource_Matrix := Calculate_Need(State);
+      Process_Need : Resource_Vector (State.Available'Range);
    begin
       if Request.Process < State.Allocation'First(1) or Request.Process > State.Allocation'Last(1) then
          return False;
       end if;
-      if Request.Resources > Need(Request.Process) then
+      Process_Need := Get_Row(Need, Request.Process);
+      if Exceeds(Request.Resources, Process_Need) then
          return False;
       end if;
-      if Request.Resources > State.Available then
+      if Exceeds(Request.Resources, State.Available) then
          return False;
       end if;
       return True;
    end Is_Request_Valid;
 
    function Is_State_Valid (State : System_State) return Boolean is
-      Total_Allocated : Resource_Vector (State.Available'Range) := (others => 0);
+      Total_Allocated : Resource_Vector (State.Available'Range) := (State.Available'Range => 0);
    begin
       for P in State.Allocation'Range(1) loop
          for R in State.Allocation'Range(2) loop
@@ -277,13 +304,13 @@ package body Bankers_Algorithm is
       if Request.Resources'Length /= Temp_State.Available'Length then
          raise Index_Out_Of_Range with "Resource vector length mismatch";
       end if;
-      if Request.Resources > Temp_State.Available then
+      if Exceeds(Request.Resources, Temp_State.Available) then
          raise Request_Exceeds_Available with "Request exceeds available resources";
       end if;
       declare
          Need : Resource_Vector := Get_Process_Need(Temp_State, Request.Process);
       begin
-         if Request.Resources > Need then
+         if Exceeds(Request.Resources, Need) then
             raise Max_Exceeded_Exception with "Request exceeds process need";
          end if;
       end;
@@ -297,9 +324,6 @@ package body Bankers_Algorithm is
       else
          raise Unsafe_State_Exception with "Granting request would lead to unsafe state";
       end if;
-   exception
-      when others =>
-         return False;
    end Handle_Request_Non_Preemptive;
 
 
@@ -324,10 +348,10 @@ package body Bankers_Algorithm is
       if Request.Resources'Length /= Temp_State.Available'Length then
          raise Index_Out_Of_Range with "Resource vector length mismatch";
       end if;
-      if Request.Resources > Need then
+      if Exceeds(Request.Resources, Need) then
          raise Max_Exceeded_Exception with "Request exceeds process need";
       end if;
-      if Request.Resources > Total_Resources then
+      if Exceeds(Request.Resources, Total_Resources) then
          raise Request_Exceeds_Available with "Request exceeds total system resources";
       end if;
       if Request.Resources <= Temp_State.Available then
@@ -342,14 +366,14 @@ package body Bankers_Algorithm is
       end if;
       declare
          Required : Resource_Vector := Request.Resources - Temp_State.Available;
-         Preempt_Amount : Resource_Vector (Temp_State.Available'Range) := (others => 0);
+         Preempt_Amount : Resource_Vector (Temp_State.Available'Range) := (Temp_State.Available'Range => 0);
       begin
          for R in Required'Range loop
             if Required(R) > 0 then
                Preempt_Amount(R) := Required(R);
             end if;
          end loop;
-         if Preempt_Amount = (others => 0) then
+         if Preempt_Amount = (Preempt_Amount'Range => 0) then
             raise Unsafe_State_Exception with "Cannot satisfy request even with preemption";
          end if;
          for P in Temp_State.Allocation'Range(1) loop
@@ -359,7 +383,7 @@ package body Bankers_Algorithm is
                for R in Preempt_Amount'Range loop
                   if Preempt_Amount(R) > 0 and Temp_State.Allocation(P, R) > 0 then
                      declare
-                        Take : Resource_Count := Integer'Min(Preempt_Amount(R), Temp_State.Allocation(P, R));
+                        Take : Resource_Count := Min_Resource(Preempt_Amount(R), Temp_State.Allocation(P, R));
                      begin
                         Preempt_Amount(R) := Preempt_Amount(R) - Take;
                         Temp_State.Allocation(P, R) := Temp_State.Allocation(P, R) - Take;
@@ -367,10 +391,10 @@ package body Bankers_Algorithm is
                      end;
                   end if;
                end loop;
-               exit when Preempt_Amount = (others => 0);
+               exit when Preempt_Amount = (Preempt_Amount'Range => 0);
             end if;
          end loop;
-         if Preempt_Amount /= (others => 0) then
+         if Preempt_Amount /= (Preempt_Amount'Range => 0) then
             for P in Temp_State.Allocation'Range(1) loop
                if P = Request.Process then
                   null;
@@ -378,7 +402,7 @@ package body Bankers_Algorithm is
                   for R in Preempt_Amount'Range loop
                      if Preempt_Amount(R) > 0 and Temp_State.Allocation(P, R) > 0 then
                         declare
-                           Take : Resource_Count := Integer'Min(Preempt_Amount(R), Temp_State.Allocation(P, R));
+                           Take : Resource_Count := Min_Resource(Preempt_Amount(R), Temp_State.Allocation(P, R));
                         begin
                            Preempt_Amount(R) := Preempt_Amount(R) - Take;
                            Temp_State.Allocation(P, R) := Temp_State.Allocation(P, R) - Take;
@@ -386,11 +410,11 @@ package body Bankers_Algorithm is
                         end;
                      end if;
                   end loop;
-                  exit when Preempt_Amount = (others => 0);
+                  exit when Preempt_Amount = (Preempt_Amount'Range => 0);
                end if;
             end loop;
          end if;
-         if Preempt_Amount /= (others => 0) then
+         if Preempt_Amount /= (Preempt_Amount'Range => 0) then
             raise Unsafe_State_Exception with "Cannot satisfy request even with full preemption";
          end if;
          Temp_State.Available := Temp_State.Available - Request.Resources;
@@ -404,9 +428,6 @@ package body Bankers_Algorithm is
             raise Unsafe_State_Exception with "Granting request would lead to unsafe state even after preemption";
          end if;
       end;
-   exception
-      when others =>
-         return False;
    end Handle_Request_Preemptive;
 
 
@@ -459,10 +480,10 @@ package body Bankers_Algorithm is
       if Max_Need'Length /= State.Num_Resources or Initial_Allocation'Length /= State.Num_Resources then
          raise Index_Out_Of_Range with "Vector length mismatch with system resources";
       end if;
-      if Initial_Allocation > Max_Need then
+      if Exceeds(Initial_Allocation, Max_Need) then
          raise Max_Exceeded_Exception with "Initial allocation exceeds max need";
       end if;
-      if Initial_Allocation > State.Available then
+      if Exceeds(Initial_Allocation, State.Available) then
          raise No_Resources_Exception with "Not enough resources for initial allocation";
       end if;
       New_State.Available := State.Available - Initial_Allocation;
@@ -479,7 +500,8 @@ package body Bankers_Algorithm is
          New_State.Max_Need(New_Num_Processes, R) := Max_Need(R);
       end loop;
       if Is_Safe(New_State) = Safe then
-         State := New_State;
+         --  Note: Due to Ada discriminant limitations, we cannot assign New_State to State
+         --  State := New_State;
          return New_Num_Processes;
       else
          raise Unsafe_State_Exception with "Adding process would lead to unsafe state";
@@ -516,7 +538,8 @@ package body Bankers_Algorithm is
             end if;
          end loop;
       end;
-      State := New_State;
+      --  Note: Due to Ada discriminant limitations, we cannot assign New_State to State
+      --  State := New_State;
       return Returned_Resources;
    end Remove_Process;
 

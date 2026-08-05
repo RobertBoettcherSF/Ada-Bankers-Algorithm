@@ -26,8 +26,8 @@ package Bankers_Algorithm is
    --  TYPES
    --  ====================================================================
 
-   --  Type for resource counts (non-negative integers)
-   type Resource_Count is range 0 .. Integer'Last;
+   --  Type for resource counts (allows negative for need calculations)
+   type Resource_Count is range Integer'First .. Integer'Last;
 
    --  Vector type for available resources (using Positive for 1-based indexing)
    type Resource_Vector is array (Positive range <>) of Resource_Count;
